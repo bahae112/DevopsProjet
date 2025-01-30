@@ -10,7 +10,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    git 'https://github.com/bahae112/DevopsProjet.git'
+                    // Assurez-vous que l'URL et la branche sont corrects
+                    git url: 'https://github.com/monprojet.git', branch: 'main'
                 }
             }
         }
