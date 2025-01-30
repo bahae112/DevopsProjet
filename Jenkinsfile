@@ -1,25 +1,20 @@
 pipeline {
     agent {
-        docker {
-            image 'docker:latest'
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Permet d'utiliser Docker dans le conteneur Jenkins
-        }
+        docker { image 'docker:latest' }
     }
 
     environment {
-        DOCKER_IMAGE = "myapp_image"
-        CONTAINER_NAME = "myapp_container"
-        SONAR_PROJECT_KEY = "DevopsProjet"
+        DOCKER_IMAGE = "django_app"
+        CONTAINER_NAME = "django_container"
         GIT_REPO = "https://github.com/bahae112/DevopsProjet.git"
-        GIT_BRANCH = "main"
+        DJANGO_PORT = "8000"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 script {
-                    echo "📥 Clonage du dépôt Git..."
-                    git branch: "${GIT_BRANCH}", url: "${GIT_REPO}"
+                    git "${GIT_REPO}"
                 }
             }
         }
@@ -27,14 +22,28 @@ pipeline {
         stage('Build & Run Docker') {
             steps {
                 script {
-                    echo "🐳 Construction et exécution du conteneur Docker..."
                     try {
                         sh """
                             docker build -t ${DOCKER_IMAGE} .
-                            docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}
+                            docker run -d --name ${CONTAINER_NAME} -p ${DJANGO_PORT}:8000 ${DOCKER_IMAGE}
                         """
                     } catch (Exception e) {
-                        error "❌ Échec du build et de l'exécution de Docker : ${e.getMessage()}"
+                        error "Build and Docker run failed: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
+
+        stage('Migrations & Collect Static') {
+            steps {
+                script {
+                    try {
+                        sh """
+                            docker exec ${CONTAINER_NAME} python manage.py migrate
+                            docker exec ${CONTAINER_NAME} python manage.py collectstatic --noinput
+                        """
+                    } catch (Exception e) {
+                        error "Database migration or static files collection failed: ${e.getMessage()}"
                     }
                 }
             }
@@ -43,20 +52,12 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    echo "🔍 Exécution de l'analyse SonarQube..."
                     try {
                         withSonarQubeEnv('sq1') {
-                            sh """
-                                sonar-scanner \
-                                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                    -Dsonar.sources=. \
-                                    -Dsonar.host.url=http://sonarqube:9000 \
-                                    -Dsonar.login=admin \
-                                    -Dsonar.password=admin
-                            """
+                            sh 'sonar-scanner'
                         }
                     } catch (Exception e) {
-                        error "❌ Échec de l'analyse SonarQube : ${e.getMessage()}"
+                        error "SonarQube analysis failed: ${e.getMessage()}"
                     }
                 }
             }
@@ -65,19 +66,14 @@ pipeline {
         stage('Push to GitHub') {
             steps {
                 script {
-                    echo "🚀 Envoi des modifications vers GitHub..."
                     try {
                         sh """
                             git add .
-                            if ! git diff --cached --quiet; then
-                                git commit -m '🔄 Mise à jour après analyse SonarQube'
-                                git push origin ${GIT_BRANCH}
-                            else
-                                echo "Aucune modification détectée, aucun commit nécessaire."
-                            fi
+                            git diff --cached --quiet || git commit -m "Update after SonarQube analysis"
+                            git push origin main
                         """
                     } catch (Exception e) {
-                        error "❌ Échec du push Git : ${e.getMessage()}"
+                        error "Git push failed: ${e.getMessage()}"
                     }
                 }
             }
@@ -85,21 +81,16 @@ pipeline {
     }
 
     post {
-        always {
-            script {
-                echo "🧹 Nettoyage des ressources Docker..."
-                sh """
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rm -f ${CONTAINER_NAME} || true
-                    docker rmi ${DOCKER_IMAGE} || true
-                """
-            }
-        }
         success {
-            echo "✅ Pipeline exécuté avec succès !"
+            echo "Pipeline executed successfully!"
+            sh """
+                docker stop ${CONTAINER_NAME} || true
+                docker rm ${CONTAINER_NAME} || true
+                docker rmi ${DOCKER_IMAGE} || true
+            """
         }
         failure {
-            echo "❌ Échec du pipeline, consultez les logs pour plus de détails."
+            echo "Pipeline failed. Check logs for details."
         }
     }
 }
