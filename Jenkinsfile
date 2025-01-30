@@ -10,7 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Cloner le dépôt Git
+                    // Cloner lee dépôt Git
                     git 'https://github.com/bahae112/DevopsProjet.git'
                 }
             }
