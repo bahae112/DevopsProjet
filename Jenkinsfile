@@ -23,6 +23,7 @@ pipeline {
                 script {
                     // Construire l'image Docker et lancer le container
                     try {
+                        // Assurez-vous que le Dockerfile est bien dans le répertoire racine du projet ou spécifiez le chemin relatif
                         sh """
                             docker build -t ${DOCKER_IMAGE} .
                             docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}
@@ -70,6 +71,11 @@ pipeline {
     post {
         success {
             echo "Pipeline executed successfully!"
+            // Nettoyer les images Docker et les conteneurs après le succès
+            sh """
+                docker rm -f ${CONTAINER_NAME} || true
+                docker rmi ${DOCKER_IMAGE} || true
+            """
         }
         failure {
             echo "Pipeline failed. Check logs for details."
