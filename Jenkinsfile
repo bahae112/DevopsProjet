@@ -50,14 +50,14 @@ pipeline {
                 bat "git push origin main"
             }
         }
+    }
 
-        stage('Declarative: Post Actions') {
-            always {
-                echo 'Cleaning up...'
-                bat "docker stop ${IMAGE_NAME}_container"
-                bat "docker rm ${IMAGE_NAME}_container"
-                bat "docker rmi ${IMAGE_NAME}"
-            }
+    post {
+        always {
+            echo 'Cleaning up...'
+            bat "docker stop ${IMAGE_NAME}_container"
+            bat "docker rm ${IMAGE_NAME}_container"
+            bat "docker rmi ${IMAGE_NAME}"
         }
     }
 }
