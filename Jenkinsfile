@@ -1,27 +1,34 @@
+
 pipeline {
     agent any
-
     environment {
-        DOCKER_IMAGE = "myapp_image"
-        CONTAINER_NAME = "myapp_container"
+        DOCKER_IMAGE = 'myapp_image'
+        DOCKER_TAG = 'latest'
+        DOCKER_REGISTRY = 'dockerhub'
+        GITHUB_REPO = 'https://github.com/bahae112/DevopsProjet.git'
     }
-
     stages {
-        stage('Checkout') {
+        stage('Checkout Repository') {
             steps {
                 script {
-                    // Assurez-vous que l'URL et la branche sont corrects
-                    git url: 'https://github.com/bahae112/DevopsProjet.git', branch: 'main'
+                    // Vérification du code source depuis le dépôt Git
+                    try {
+                        git url: GITHUB_REPO
+                    } catch (Exception e) {
+                        error "Couldn't find any revision to build. Verify the repository and branch configuration for this job. ${e.getMessage()}"
+                    }
                 }
             }
         }
-
+        
         stage('Build Docker Image') {
             steps {
                 script {
                     try {
-                        // Construction de l'image Docker
-                        sh "docker build -t ${DOCKER_IMAGE} ."
+                        // Construire l'image Docker en utilisant PowerShell
+                        powershell '''
+                            docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        '''
                     } catch (Exception e) {
                         error "Image build failed: ${e.getMessage()}"
                     }
@@ -33,12 +40,12 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Exécuter le conteneur Docker en mode détaché
-                        sh """
-                            docker run -d -p 8080:8080 -p 50000:50000 --name ${CONTAINER_NAME} ${DOCKER_IMAGE}
-                        """
+                        // Lancer le conteneur Docker
+                        bat '''
+                            docker run -d -p 8080:8080 -p 50000:50000 --name jenkins-container ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        '''
                     } catch (Exception e) {
-                        error "Docker container run failed: ${e.getMessage()}"
+                        error "Failed to run Docker container: ${e.getMessage()}"
                     }
                 }
             }
@@ -48,9 +55,10 @@ pipeline {
             steps {
                 script {
                     try {
-                        withSonarQubeEnv(installationName: 'sq1') {
-                            sh 'sonar-scanner'
-                        }
+                        // Effectuer l'analyse SonarQube
+                        bat '''
+                            sonar-scanner
+                        '''
                     } catch (Exception e) {
                         error "SonarQube analysis failed: ${e.getMessage()}"
                     }
@@ -62,29 +70,30 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh """
+                        // Push vers GitHub après l'analyse SonarQube
+                        bat '''
                             git add .
-                            git diff --cached --quiet || git commit -m "Mise à jour après analyse SonarQube"
+                            git commit -m "Updated changes after Docker build and SonarQube analysis"
                             git push origin main
-                        """
+                        '''
                     } catch (Exception e) {
-                        error "Git push failed: ${e.getMessage()}"
+                        error "GitHub push failed: ${e.getMessage()}"
                     }
                 }
             }
         }
+
     }
 
     post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
         success {
-            echo "Pipeline executed successfully!"
-            sh """
-                docker rm -f ${CONTAINER_NAME} || true
-                docker rmi ${DOCKER_IMAGE} || true
-            """
+            echo 'Pipeline succeeded.'
         }
         failure {
-            echo "Pipeline failed. Check logs for details."
+            echo 'Pipeline failed.'
         }
     }
 }
