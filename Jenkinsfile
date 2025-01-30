@@ -1,37 +1,27 @@
-
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = 'myapp_image'
-        DOCKER_TAG = 'latest'
-        DOCKER_REGISTRY = 'dockerhub'
-        GITHUB_REPO = 'https://github.com/bahae112/DevopsProjet.git'
+        DOCKER_IMAGE = 'my-django-app' // Nom de l'image Docker
+        DOCKER_REGISTRY = 'docker.io'  // Registry Docker
+        GIT_REPO = 'https://github.com/bahae112/DevopsProjet.git'  // Référentiel GitHub
+        BRANCH_NAME = 'main'           // Branche Git à utiliser
     }
+
     stages {
-        stage('Checkout Repository') {
+        stage('Checkout') {
             steps {
-                script {
-                    // Vérification du code source depuis le dépôt Git
-                    try {
-                        git url: GITHUB_REPO
-                    } catch (Exception e) {
-                        error "Couldn't find any revision to build. Verify the repository and branch configuration for this job. ${e.getMessage()}"
-                    }
-                }
+                echo 'Cloning the repository...'
+                git url: "${GIT_REPO}", branch: "${BRANCH_NAME}"
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    try {
-                        // Construire l'image Docker en utilisant PowerShell
-                        powershell '''
-                            docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                        '''
-                    } catch (Exception e) {
-                        error "Image build failed: ${e.getMessage()}"
-                    }
+                    echo 'Building the Docker image...'
+                    // Construire l'image Docker
+                    sh 'docker build -t ${DOCKER_IMAGE} .'
                 }
             }
         }
@@ -39,29 +29,29 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    try {
-                        // Lancer le conteneur Docker
-                        bat '''
-                            docker run -d -p 8080:8080 -p 50000:50000 --name jenkins-container ${DOCKER_IMAGE}:${DOCKER_TAG}
-                        '''
-                    } catch (Exception e) {
-                        error "Failed to run Docker container: ${e.getMessage()}"
-                    }
+                    echo 'Running Docker container...'
+                    // Lancer le conteneur Docker
+                    sh 'docker run -d -p 8000:8000 ${DOCKER_IMAGE}'
                 }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
+                echo 'Running SonarQube analysis...'
+                // Exécuter l'analyse SonarQube (si nécessaire)
+                // Assurez-vous d'avoir une configuration SonarQube dans Jenkins
+                sh 'mvn sonar:sonar'
+            }
+        }
+
+        stage('Push Docker Image to Registry') {
+            steps {
                 script {
-                    try {
-                        // Effectuer l'analyse SonarQube
-                        bat '''
-                            sonar-scanner
-                        '''
-                    } catch (Exception e) {
-                        error "SonarQube analysis failed: ${e.getMessage()}"
-                    }
+                    echo 'Pushing the Docker image to registry...'
+                    // Pousser l'image Docker vers un registry
+                    sh 'docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest'
+                    sh 'docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest'
                 }
             }
         }
@@ -69,31 +59,30 @@ pipeline {
         stage('Push to GitHub') {
             steps {
                 script {
-                    try {
-                        // Push vers GitHub après l'analyse SonarQube
-                        bat '''
-                            git add .
-                            git commit -m "Updated changes after Docker build and SonarQube analysis"
-                            git push origin main
-                        '''
-                    } catch (Exception e) {
-                        error "GitHub push failed: ${e.getMessage()}"
-                    }
+                    echo 'Pushing changes to GitHub...'
+                    // Pousser les modifications sur GitHub
+                    sh 'git add .'
+                    sh 'git commit -m "Automated changes after build"'
+                    sh 'git push origin ${BRANCH_NAME}'
                 }
             }
         }
-
     }
 
     post {
         always {
-            echo 'Pipeline execution completed.'
+            echo 'Cleaning up...'
+            // Nettoyage après l'exécution (par exemple, supprimer les conteneurs Docker)
+            sh 'docker ps -q | xargs docker stop'
+            sh 'docker ps -a -q | xargs docker rm'
         }
+
         success {
-            echo 'Pipeline succeeded.'
+            echo 'Build and deployment succeeded!'
         }
+
         failure {
-            echo 'Pipeline failed.'
+            echo 'Build or deployment failed.'
         }
     }
 }
