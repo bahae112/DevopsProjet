@@ -10,8 +10,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Cloner le dépôt Git
-                    git 'https://github.com/bahae112/DevopsProjet.git'
+                    // Cloner le dépôt Git depuis la branche 'main'
+                    git branch: 'main', url: 'https://github.com/bahae112/DevopsProjet.git'
                 }
             }
         }
