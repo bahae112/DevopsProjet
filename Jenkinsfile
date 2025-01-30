@@ -1,39 +1,84 @@
 pipeline {
-    agent any
+    agent {
+        docker { image 'docker:latest' }
+    }
 
     environment {
-        WORKDIR = "/mnt/c/ProgramData/Jenkins/.jenkins/workspace/devopsTestSonarDocker/"
+        DOCKER_IMAGE = "myapp_image"
+        CONTAINER_NAME = "myapp_container"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/bahae112/DevopsProjet.git'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
                 script {
-                    sh "docker build -t my-docker-image ${WORKDIR}"
+                    // Cloner le dépôt Git
+                    git 'https://github.com/bahae112/DevopsProjet.git'
                 }
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Build & Run Docker') {
             steps {
                 script {
-                    sh "docker run -w ${WORKDIR} -v ${WORKDIR}:${WORKDIR} my-docker-image"
+                    // Construire l'image Docker et lancer le container
+                    try {
+                        // Assurez-vous que le Dockerfile est bien dans le répertoire racine du projet ou spécifiez le chemin relatif
+                        sh """
+                            docker build -t ${DOCKER_IMAGE} .
+                            docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}
+                        """
+                    } catch (Exception e) {
+                        error "Build and Docker run failed: ${e.getMessage()}"
+                    }
                 }
             }
         }
 
-        stage('Cleanup') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    sh "docker system prune -f"
+                    // Exécution de l'analyse SonarQube
+                    try {
+                        withSonarQubeEnv(installationName: 'sq1') {
+                            sh 'sonar-scanner'
+                        }
+                    } catch (Exception e) {
+                        error "SonarQube analysis failed: ${e.getMessage()}"
+                    }
                 }
             }
+        }
+
+        stage('Push to GitHub') {
+            steps {
+                script {
+                    // Effectuer le push vers GitHub après analyse SonarQube
+                    try {
+                        sh """
+                            git add .
+                            git diff --cached --quiet || git commit -m "Mise à jour après analyse SonarQube"
+                            git push origin main
+                        """
+                    } catch (Exception e) {
+                        error "Git push failed: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline executed successfully!"
+            // Nettoyer les images Docker et les conteneurs après le succès
+            sh """
+                docker rm -f ${CONTAINER_NAME} || true
+                docker rmi ${DOCKER_IMAGE} || true
+            """
+        }
+        failure {
+            echo "Pipeline failed. Check logs for details."
         }
     }
 }
