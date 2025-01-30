@@ -10,8 +10,9 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Utiliser la commande checkout pour récupérer le code
-                    checkout scm
+                    // Utiliser le Git installé sous Windows
+                    checkout([$class: 'GitSCM', branches: [[name: '*/main']],
+                              userRemoteConfigs: [[url: 'https://github.com/bahae112/DevopsProjet.git', credentialsId: 'my-credentials-id']]])
                 }
             }
         }
@@ -21,10 +22,9 @@ pipeline {
                 script {
                     // Construire l'image Docker et lancer le container
                     try {
-                        sh """
+                        bat """
                             docker build -t ${DOCKER_IMAGE} .
                             docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}
-                            docker ps -a  # Vérifier si le conteneur fonctionne
                         """
                     } catch (Exception e) {
                         error "Build and Docker run failed: ${e.getMessage()}"
@@ -39,7 +39,7 @@ pipeline {
                     // Exécution de l'analyse SonarQube
                     try {
                         withSonarQubeEnv(installationName: 'sq1') {
-                            sh 'sonar-scanner'
+                            bat 'sonar-scanner'
                         }
                     } catch (Exception e) {
                         error "SonarQube analysis failed: ${e.getMessage()}"
@@ -53,7 +53,7 @@ pipeline {
                 script {
                     // Effectuer le push vers GitHub après analyse SonarQube
                     try {
-                        sh """
+                        bat """
                             git config --global user.name 'Jenkins'
                             git config --global user.email 'jenkins@example.com'
                             git add .
