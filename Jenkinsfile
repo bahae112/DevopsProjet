@@ -24,10 +24,10 @@ pipeline {
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Save Docker Image Locally') {
             steps {
-                echo 'Running Docker container'
-                bat "docker run -d --name ${IMAGE_NAME}_container ${IMAGE_NAME}"
+                echo 'Saving Docker image locally'
+                bat "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
             }
         }
 
@@ -56,8 +56,6 @@ pipeline {
     post {
         always {
             echo 'Cleaning up...'
-            bat "docker stop ${IMAGE_NAME}_container"
-            bat "docker rm ${IMAGE_NAME}_container"
             bat "docker rmi ${IMAGE_NAME}"
         }
     }
