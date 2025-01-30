@@ -11,7 +11,7 @@ pipeline {
             steps {
                 script {
                     // Cloner lee dépôt Git
-                    git 'https://github.com/bahae112/DevopsProjet.git'
+                    git clone 'https://github.com/bahae112/DevopsProjet.git'
                 }
             }
         }
