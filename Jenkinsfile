@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        docker { image 'docker:latest' }
-    }
+    agent any
 
     environment {
         DOCKER_IMAGE = "myapp_image"
@@ -12,22 +10,34 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    git 'https://github.com/bahae112/DevopsProjet.git'
+                    git 'https://github.com/monprojet.git'
                 }
             }
         }
 
-        stage('Build & Run Docker') {
+        stage('Build Docker Image') {
             steps {
                 script {
                     try {
-                        // Construire l'image Docker et lancer le container
+                        // Construction de l'image Docker
+                        sh "docker build -t ${DOCKER_IMAGE} ."
+                    } catch (Exception e) {
+                        error "Image build failed: ${e.getMessage()}"
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    try {
+                        // Exécuter le conteneur Docker en mode détaché
                         sh """
-                            docker build -t ${DOCKER_IMAGE} .
-                            docker run -d -t -w 'C:/ProgramData/Jenkins/.jenkins/workspace/devopsTestSonarDocker/' -v 'C:/ProgramData/Jenkins/.jenkins/workspace/devopsTestSonarDocker/:/devopsTestSonarDocker/' -v 'C:/ProgramData/Jenkins/.jenkins/workspace/devopsTestSonarDocker@tmp/:/devopsTestSonarDocker@tmp/' ${DOCKER_IMAGE}
+                            docker run -d -p 8080:8080 -p 50000:50000 --name ${CONTAINER_NAME} ${DOCKER_IMAGE}
                         """
                     } catch (Exception e) {
-                        error "Build and Docker run failed: ${e.getMessage()}"
+                        error "Docker container run failed: ${e.getMessage()}"
                     }
                 }
             }
