@@ -1,96 +1,39 @@
 pipeline {
-    agent {
-        docker { image 'docker:latest' }
-    }
+    agent any
 
     environment {
-        DOCKER_IMAGE = "django_app"
-        CONTAINER_NAME = "django_container"
-        GIT_REPO = "https://github.com/bahae112/DevopsProjet.git"
-        DJANGO_PORT = "8000"
+        WORKDIR = "/mnt/c/ProgramData/Jenkins/.jenkins/workspace/devopsTestSonarDocker/"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                script {
-                    git "${GIT_REPO}"
-                }
+                git branch: 'main', url: 'https://github.com/bahae112/DevopsProjet.git'
             }
         }
 
-        stage('Build & Run Docker') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    try {
-                        sh """
-                            docker build -t ${DOCKER_IMAGE} .
-                            docker run -d --name ${CONTAINER_NAME} -p ${DJANGO_PORT}:8000 ${DOCKER_IMAGE}
-                        """
-                    } catch (Exception e) {
-                        error "Build and Docker run failed: ${e.getMessage()}"
-                    }
+                    sh "docker build -t my-docker-image ${WORKDIR}"
                 }
             }
         }
 
-        stage('Migrations & Collect Static') {
+        stage('Run Docker Container') {
             steps {
                 script {
-                    try {
-                        sh """
-                            docker exec ${CONTAINER_NAME} python manage.py migrate
-                            docker exec ${CONTAINER_NAME} python manage.py collectstatic --noinput
-                        """
-                    } catch (Exception e) {
-                        error "Database migration or static files collection failed: ${e.getMessage()}"
-                    }
+                    sh "docker run -w ${WORKDIR} -v ${WORKDIR}:${WORKDIR} my-docker-image"
                 }
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('Cleanup') {
             steps {
                 script {
-                    try {
-                        withSonarQubeEnv('sq1') {
-                            sh 'sonar-scanner'
-                        }
-                    } catch (Exception e) {
-                        error "SonarQube analysis failed: ${e.getMessage()}"
-                    }
+                    sh "docker system prune -f"
                 }
             }
-        }
-
-        stage('Push to GitHub') {
-            steps {
-                script {
-                    try {
-                        sh """
-                            git add .
-                            git diff --cached --quiet || git commit -m "Update after SonarQube analysis"
-                            git push origin main
-                        """
-                    } catch (Exception e) {
-                        error "Git push failed: ${e.getMessage()}"
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo "Pipeline executed successfully!"
-            sh """
-                docker stop ${CONTAINER_NAME} || true
-                docker rm ${CONTAINER_NAME} || true
-                docker rmi ${DOCKER_IMAGE} || true
-            """
-        }
-        failure {
-            echo "Pipeline failed. Check logs for details."
         }
     }
 }
