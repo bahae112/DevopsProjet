@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Utiliser une image Python
 FROM python:3.9
 
@@ -34,4 +34,3 @@ EXPOSE 8000
 
 # Lancer le serveur Django
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
->>>>>>> c7e7e2ee416ee59c9b554ee78ee372e2e3e38a58
