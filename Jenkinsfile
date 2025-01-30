@@ -10,8 +10,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Cloner lee dépôt Git
-                    git clone 'https://github.com/bahae112/DevopsProjet.git'
+                    // Utiliser la commande checkout pour récupérer le code
+                    checkout scm
                 }
             }
         }
@@ -24,6 +24,7 @@ pipeline {
                         sh """
                             docker build -t ${DOCKER_IMAGE} .
                             docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}
+                            docker ps -a  # Vérifier si le conteneur fonctionne
                         """
                     } catch (Exception e) {
                         error "Build and Docker run failed: ${e.getMessage()}"
@@ -53,6 +54,8 @@ pipeline {
                     // Effectuer le push vers GitHub après analyse SonarQube
                     try {
                         sh """
+                            git config --global user.name 'Jenkins'
+                            git config --global user.email 'jenkins@example.com'
                             git add .
                             git diff --cached --quiet || git commit -m "Mise à jour après analyse SonarQube"
                             git push origin main
