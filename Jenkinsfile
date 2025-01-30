@@ -6,14 +6,18 @@ pipeline {
     environment {
         DOCKER_IMAGE = "myapp_image"
         CONTAINER_NAME = "myapp_container"
+        // Définir le chemin vers le volume jenkins_home et le répertoire de ton projet
+        JENKINS_WORKSPACE = '\\wsl$\\docker-desktop-data\\version-pack-data\\community\\docker\\volumes\\jenkins_home\\_data\\workspace\\devopsTestSonarDocker'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 script {
-                    // Cloner le dépôt Git
-                    git 'https://github.com/bahae112/DevopsProjet.git'
+                    // Cloner le dépôt Git dans le répertoire spécifique du workspace
+                    dir(JENKINS_WORKSPACE) {
+                        git 'https://github.com/bahae112/DevopsProjet.git'
+                    }
                 }
             }
         }
@@ -23,9 +27,9 @@ pipeline {
                 script {
                     // Construire l'image Docker et lancer le container
                     try {
-                        // Assurez-vous que le Dockerfile est bien dans le répertoire racine du projet ou spécifiez le chemin relatif
+                        // Assurez-vous que le Dockerfile est dans le répertoire de travail
                         sh """
-                            docker build -t ${DOCKER_IMAGE} .
+                            docker build -t ${DOCKER_IMAGE} ${JENKINS_WORKSPACE}
                             docker run -d --name ${CONTAINER_NAME} -p 8000:8000 ${DOCKER_IMAGE}
                         """
                     } catch (Exception e) {
