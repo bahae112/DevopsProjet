@@ -6,13 +6,14 @@ pipeline {
         REGISTRY = 'my-registry'
         DOCKERFILE_PATH = 'Dockerfile'
         GIT_URL = 'https://github.com/bahae112/DevopsProjet.git'
+        BRANCH_NAME = 'main'  // Spécifiez ici la branche correcte
     }
 
     stages {
         stage('Checkout') {
             steps {
                 echo 'Cloning repository'
-                git "${GIT_URL}"
+                git branch: "${BRANCH_NAME}", url: "${GIT_URL}"
             }
         }
 
@@ -47,7 +48,7 @@ pipeline {
         stage('Push to GitHub') {
             steps {
                 echo 'Pushing changes to GitHub'
-                bat "git push origin main"
+                bat "git push origin ${BRANCH_NAME}"
             }
         }
     }
