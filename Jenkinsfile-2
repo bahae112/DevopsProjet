@@ -7,39 +7,56 @@ pipeline {
   stages {
     stage('Verify version') {
       steps {
-        sh '''
-          gcloud version
-        '''
+        script {
+          echo 'Verifying gcloud version...'
+          bat 'gcloud version'
+        }
       }
     }
+    
     stage('Authenticate') {
       steps {
-        withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
-          sh '''
-            gcloud auth activate-service-account --key-file=$GCLOUD_CREDS
+        script {
+          echo 'Authenticating with Google Cloud...'
+          withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
+            bat '''
+              gcloud auth activate-service-account --key-file=%GCLOUD_CREDS%
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Install service') {
+      steps {
+        script {
+          echo 'Deploying service with gcloud...'
+          bat '''
+            gcloud run services replace service.yaml --platform='managed' --region='us-central1'
           '''
         }
       }
     }
-    stage('Install service') {
-      steps {
-        sh '''
-          gcloud run services replace service.yaml --platform='managed' --region='us-central1'
-        '''
-      }
-    }
+
     stage('Allow allUsers') {
       steps {
-        sh '''
-          gcloud run services add-iam-policy-binding hello --region='us-central1' --member='allUsers' --role='roles/run.invoker'
-        '''
+        script {
+          echo 'Configuring IAM permissions for public access...'
+          bat '''
+            gcloud run services add-iam-policy-binding hello --region='us-central1' --member='allUsers' --role='roles/run.invoker'
+          '''
+        }
       }
     }
   }
+
   post {
     always {
-      withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
-        sh 'gcloud auth revoke $CLIENT_EMAIL'
+      script {
+        echo 'Revoking authentication...'
+        withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
+          bat 'gcloud auth revoke %CLIENT_EMAIL%'
+        }
       }
     }
   }
