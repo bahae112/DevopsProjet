@@ -33,10 +33,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo 'Running SonarQube Analysis'
-                bat "sonar-scanner"
+                script {
+                    // Utilise le nom de l'installation SonarQube que tu as configurée (par exemple, 'sq1')
+                    scannerHome = tool name: 'sq1', type: 'SonarQubeScanner'
+                    withSonarQubeEnv('sq1') {
+                        // Exécute le scanner SonarQube
+                        bat "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
             }
         }
+
 
         stage('Push Docker Image to Registry') {
             steps {
