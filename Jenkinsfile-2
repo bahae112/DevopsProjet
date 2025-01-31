@@ -15,16 +15,9 @@ pipeline {
                     // Authentification avec la clé du compte de service
                     withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                         bat """
-                            REM Authentifier gcloud avec le fichier de clé
                             gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
-
-                            REM Configurer le projet Google Cloud
                             gcloud config set project ${GOOGLE_CLOUD_PROJECT}
-
-                            REM Se connecter à Google Container Registry
                             gcloud auth configure-docker
-
-                            REM Pousser l'image Docker vers Google Container Registry (si ce n'est pas déjà fait)
                             docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
                         """
                     }
