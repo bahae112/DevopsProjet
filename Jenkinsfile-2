@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         GOOGLE_CLOUD_PROJECT = 'glass-mantra-447916-d1'  // Ton ID de projet Google Cloud
-        DOCKER_IMAGE_NAME = 'gcr.io/${GOOGLE_CLOUD_PROJECT}/my-image'  // Nom de l'image Docker
+        DOCKER_IMAGE_NAME = "gcr.io/${GOOGLE_CLOUD_PROJECT}/my-image"  // Nom de l'image Docker
         IMAGE_TAG = 'latest'  // Tag de l'image (par exemple 'latest')
         IMAGE_ID = 'e0c46393cd74'  // ID de l'image Docker
         SERVICE_ACCOUNT_EMAIL = 'deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com'  // Email du compte de service
