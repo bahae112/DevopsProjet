@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'my-image'
-        REGISTRY = 'my-registry'
+        REGISTRY = 'docker.io'
         DOCKERFILE_PATH = 'Dockerfile'
         GIT_URL = 'https://github.com/bahae112/DevopsProjet.git'
         BRANCH_NAME = 'main'  // Spécifiez ici la branche correcte
