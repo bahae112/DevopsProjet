@@ -5,22 +5,10 @@ pipeline {
         GOOGLE_CLOUD_PROJECT = 'glass-mantra-447916-d1'  // Ton ID de projet Google Cloud
         DOCKER_IMAGE_NAME = "gcr.io/${GOOGLE_CLOUD_PROJECT}/my-image"  // Nom de l'image Docker
         IMAGE_TAG = 'latest'  // Tag de l'image (par exemple 'latest')
-        IMAGE_ID = 'e0c46393cd74'  // ID de l'image Docker
         SERVICE_ACCOUNT_EMAIL = 'deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com'  // Email du compte de service
     }
 
     stages {
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Construire l'image Docker localement
-                    bat """
-                        docker build -t ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} .
-                    """
-                }
-            }
-        }
-
         stage('Push Docker Image to Google Container Registry') {
             steps {
                 script {
@@ -36,7 +24,7 @@ pipeline {
                             REM Se connecter à Google Container Registry
                             gcloud auth configure-docker
 
-                            REM Pousser l'image Docker vers Google Container Registry
+                            REM Pousser l'image Docker vers Google Container Registry (si ce n'est pas déjà fait)
                             docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
                         """
                     }
