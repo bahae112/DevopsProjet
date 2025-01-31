@@ -14,7 +14,7 @@ pipeline {
             steps {
                 script {
                     // Construire l'image Docker localement
-                    docker.build("${DOCKER_IMAGE_NAME}:${IMAGE_TAG}")
+                    bat 'docker build -t "${DOCKER_IMAGE_NAME}:${IMAGE_TAG}" .'
                 }
             }
         }
@@ -24,18 +24,18 @@ pipeline {
                 script {
                     // Authentification avec la clé du compte de service
                     withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        sh '''
-                            # Authentifier gcloud avec le fichier de clé
-                            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-                            
-                            # Configurer le projet Google Cloud
-                            gcloud config set project $GOOGLE_CLOUD_PROJECT
+                        bat '''
+                            REM Authentifier gcloud avec le fichier de clé
+                            gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
 
-                            # Se connecter à Google Container Registry
+                            REM Configurer le projet Google Cloud
+                            gcloud config set project %GOOGLE_CLOUD_PROJECT%
+
+                            REM Se connecter à Google Container Registry
                             gcloud auth configure-docker
 
-                            # Pousser l'image Docker vers Google Container Registry
-                            docker push $DOCKER_IMAGE_NAME:$IMAGE_TAG
+                            REM Pousser l'image Docker vers Google Container Registry
+                            docker push %DOCKER_IMAGE_NAME%:%IMAGE_TAG%
                         '''
                     }
                 }
@@ -47,15 +47,15 @@ pipeline {
                 script {
                     // Déployer l'image Docker sur Google Cloud Run
                     withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        sh '''
-                            # Authentifier gcloud avec la clé
-                            gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+                        bat '''
+                            REM Authentifier gcloud avec la clé
+                            gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
 
-                            # Déployer l'image sur Cloud Run
-                            gcloud run deploy my-service \
-                                --image $DOCKER_IMAGE_NAME:$IMAGE_TAG \
-                                --platform managed \
-                                --region us-central1 \
+                            REM Déployer l'image sur Cloud Run
+                            gcloud run deploy my-service ^
+                                --image %DOCKER_IMAGE_NAME%:%IMAGE_TAG% ^
+                                --platform managed ^
+                                --region us-central1 ^
                                 --allow-unauthenticated
                         '''
                     }
