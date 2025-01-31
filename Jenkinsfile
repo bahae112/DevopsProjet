@@ -59,11 +59,4 @@ pipeline {
             }
         }
     }
-
-    post {
-        always {
-            echo 'Cleaning up...'
-            bat "docker rmi ${IMAGE_NAME}"
-        }
-    }
 }
