@@ -34,16 +34,17 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Utilise le nom de l'installation SonarQube que tu as configurée (par exemple, 'sq1')
+                    // Utiliser le scanner SonarQube configuré dans Jenkins
                     scannerHome = tool name: 'sq1', type: 'SonarQubeScanner'
+                    
+                    // Lancer l'analyse à l'intérieur du conteneur Docker basé sur Linux
                     withSonarQubeEnv('sq1') {
-                        // Exécute le scanner SonarQube
-                        bat "${scannerHome}/bin/sonar-scanner"
+                        // Exécuter le sonar-scanner à l'intérieur du conteneur Docker
+                        bat "docker run --rm -v ${WORKSPACE}:/workspace ${IMAGE_NAME} ${scannerHome}/bin/sonar-scanner -Dsonar.sources=/workspace"
                     }
                 }
             }
         }
-
 
         stage('Push Docker Image to Registry') {
             steps {
