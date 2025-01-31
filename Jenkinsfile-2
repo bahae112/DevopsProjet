@@ -1,49 +1,12 @@
 pipeline {
-    agent any
-
-    environment {
-        GOOGLE_CLOUD_PROJECT = 'glass-mantra-447916-d1'  // Ton ID de projet Google Cloud
-        DOCKER_IMAGE_NAME = "gcr.io/${GOOGLE_CLOUD_PROJECT}/my-image"  // Nom de l'image Docker
-        IMAGE_TAG = 'latest'  // Tag de l'image (par exemple 'latest')
-        SERVICE_ACCOUNT_EMAIL = 'deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com'  // Email du compte de service
+  agent any
+  stages {
+    stage('test') {
+      steps {
+        sh '''
+          gcloud version
+        '''
+      }
     }
-
-    stages {
-        stage('Push Docker Image to Google Container Registry') {
-            steps {
-                script {
-                    // Authentification avec la clé du compte de service
-                    withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        bat """
-                            gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
-                            gcloud config set project ${GOOGLE_CLOUD_PROJECT}
-                            gcloud auth configure-docker
-                            docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Deploy to Google Cloud Run') {
-            steps {
-                script {
-                    // Déployer l'image Docker sur Google Cloud Run
-                    withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                        bat """
-                            REM Authentifier gcloud avec la clé
-                            gcloud auth activate-service-account --key-file=%GOOGLE_APPLICATION_CREDENTIALS%
-
-                            REM Déployer l'image sur Cloud Run
-                            gcloud run deploy my-service ^
-                                --image ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ^
-                                --platform managed ^
-                                --region us-central1 ^
-                                --allow-unauthenticated
-                        """
-                    }
-                }
-            }
-        }
-    }
+  }
 }
