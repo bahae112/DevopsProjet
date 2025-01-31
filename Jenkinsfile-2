@@ -1,9 +1,8 @@
 pipeline {
   agent any
   environment {
-    CLOUDSDK_CORE_PROJECT='glass-mantra-447916-d1'
-    CLIENT_EMAIL='deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com'
-    GCLOUD_CREDS=credentials('google-cloud-key')
+    CLOUDSDK_CORE_PROJECT = 'glass-mantra-447916-d1'
+    CLIENT_EMAIL = 'deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com'
   }
   stages {
     stage('Verify version') {
@@ -15,9 +14,11 @@ pipeline {
     }
     stage('Authenticate') {
       steps {
-        sh '''
-          gcloud auth activate-service-account --key-file="$GCLOUD_CREDS"
-        '''
+        withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
+          sh '''
+            gcloud auth activate-service-account --key-file=$GCLOUD_CREDS
+          '''
+        }
       }
     }
     stage('Install service') {
@@ -37,7 +38,9 @@ pipeline {
   }
   post {
     always {
-      sh 'gcloud auth revoke $CLIENT_EMAIL'
+      withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
+        sh 'gcloud auth revoke $CLIENT_EMAIL'
+      }
     }
   }
 }
