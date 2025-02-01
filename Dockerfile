@@ -14,4 +14,4 @@ COPY . .
 EXPOSE 8000
 
 # Lancer le serveur Django
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["sh", "-c", "python myapp/manage.py migrate && python myapp/manage.py runserver 0.0.0.0:8000"]
