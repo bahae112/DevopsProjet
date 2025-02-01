@@ -25,7 +25,7 @@ pipeline {
                         ${SONARQUBE_SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=${SONARQUBE_SERVER} \
-                        -Dsonar.login=${SONARQUBE_TOKEN}
+                        -Dsonar.login=${jenkinssonardocker}
                         """
                     }
                 }
