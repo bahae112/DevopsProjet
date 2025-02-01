@@ -1,53 +1,63 @@
 pipeline {
-    agent any  // Agent Jenkins sur Windows
+    agent any
 
     environment {
-        IMAGE_NAME      = 'my-image'
+        IMAGE_NAME = 'my-image'
+        REGISTRY = 'docker.io'
         DOCKERFILE_PATH = 'Dockerfile'
-        GIT_URL         = 'https://github.com/bahae112/DevopsProjet.git'
-        BRANCH_NAME     = 'main'
-        CONTAINER_NAME  = 'my-container'
-        HOST_PORT       = '9090'
-        CONTAINER_PORT  = '8000'
+        GIT_URL = 'https://github.com/bahae112/DevopsProjet.git'
+        BRANCH_NAME = 'main'  // Spécifiez ici la branche correcte
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Clonage du repository'
+                echo 'Cloning repository'
                 git branch: "${BRANCH_NAME}", url: "${GIT_URL}"
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo 'Construction de l\'image Docker via WSL'
-                // La commande s'exécute dans l'environnement Linux de WSL2
-                bat "wsl docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
+                echo 'Building Docker image'
+                bat "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
             }
         }
 
         stage('Save Docker Image Locally') {
             steps {
-                echo 'Sauvegarde de l\'image Docker en local via WSL'
-                bat "wsl docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
+                echo 'Saving Docker image locally'
+                bat "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
             }
         }
 
-        stage('Create Container') {
+        stage('SonarQube Analysis') {
             steps {
-                echo 'Création et lancement du conteneur Docker via WSL'
-                // Suppression éventuelle d'un conteneur existant portant le même nom
-                bat "wsl docker rm -f ${CONTAINER_NAME} || echo 'Aucun conteneur existant à supprimer'"
-                // Lancer le conteneur en mode détaché en mappant le port 9090 de l'hôte sur le port 8000 du conteneur
-                bat "wsl docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} --name ${CONTAINER_NAME} ${IMAGE_NAME}"
+                script {
+                    // Utiliser le scanner SonarQube configuré dans Jenkins
+                    scannerHome = tool name: 'sq1', type: 'SonarQubeScanner'
+                    
+                    // Lancer l'analyse à l'intérieur du conteneur Docker basé sur Linux
+                    withSonarQubeEnv('sq1') {
+                        // Exécuter le sonar-scanner à l'intérieur du conteneur Docker
+                        bat "docker run --rm -v ${WORKSPACE}:/workspace ${IMAGE_NAME} ${scannerHome}/bin/sonar-scanner -Dsonar.sources=/workspace"
+                    }
+                }
             }
         }
-    }
-    
-    post {
-        always {
-            echo "Nettoyage de l'environnement de build"
+
+        stage('Push Docker Image to Registry') {
+            steps {
+                echo 'Pushing Docker image to registry'
+                bat "docker push ${REGISTRY}/${IMAGE_NAME}"
+            }
+        }
+
+        stage('Push to GitHub') {
+            steps {
+                echo 'Pushing changes to GitHub'
+                bat "git push origin ${BRANCH_NAME}"
+            }
         }
     }
 }
