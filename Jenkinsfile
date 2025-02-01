@@ -2,47 +2,62 @@ pipeline {
     agent any
 
     environment {
+        IMAGE_NAME = 'my-image'
+        REGISTRY = 'docker.io'
+        DOCKERFILE_PATH = 'Dockerfile'
         GIT_URL = 'https://github.com/bahae112/DevopsProjet.git'
-        BRANCH_NAME = 'main'
-        SONARQUBE_SERVER = 'http://localhost:9000'  // URL de ton serveur SonarQube
-        SONARQUBE_SCANNER_HOME = '/usr/local/sonar-scanner'  // Chemin du SonarQube Scanner local
+        BRANCH_NAME = 'main'  // Spécifiez ici la branche correcte
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Clonage du repository depuis GitHub'
+                echo 'Cloning repository'
                 git branch: "${BRANCH_NAME}", url: "${GIT_URL}"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image'
+                bat "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
+            }
+        }
+
+        stage('Save Docker Image Locally') {
+            steps {
+                echo 'Saving Docker image locally'
+                bat "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Lancer l'analyse SonarQube localement
-                    withSonarQubeEnv('sonarqube') {
-                        bat """
-                        ${SONARQUBE_SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=${SONARQUBE_SERVER} \
-                        -Dsonar.login=${jenkinssonardocker}
-                        """
+                    // Utiliser le scanner SonarQube configuré dans Jenkins
+                    scannerHome = tool name: 'sq1', type: 'SonarQubeScanner'
+                    
+                    // Lancer l'analyse à l'intérieur du conteneur Docker basé sur Linux
+                    withSonarQubeEnv('sq1') {
+                        // Exécuter le sonar-scanner à l'intérieur du conteneur Docker
+                        bat "docker run --rm -v ${WORKSPACE}:/workspace ${IMAGE_NAME} ${scannerHome}/bin/sonar-scanner -Dsonar.sources=/workspace"
                     }
                 }
             }
         }
 
-        stage('Push to GitHub') {
+        stage('Push Docker Image to Registry') {
             steps {
-                echo 'Poussée des changements vers GitHub'
-                bat "git push origin ${BRANCH_NAME}"
+                echo 'Pushing Docker image to registry'
+                bat "docker push ${REGISTRY}/${IMAGE_NAME}"
             }
         }
-    }
 
-    post {
-        always {
-            echo "Nettoyage de l'environnement de build"
+        stage('Push to GitHub') {
+            steps {
+                echo 'Pushing changes to GitHub'
+                bat "git push origin ${BRANCH_NAME}"
+            }
         }
     }
 }
