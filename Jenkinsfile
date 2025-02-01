@@ -17,20 +17,17 @@ pipeline {
             }
         }
 
-        stage('Check if Image Exists') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    def imageExists = sh(script: "docker images -q ${IMAGE_NAME}", returnStdout: true).trim()
-                    if (imageExists) {
-                        echo "Image ${IMAGE_NAME} already exists, skipping build."
-                    } else {
-                        echo "Image ${IMAGE_NAME} not found, building the image."
-                        // Build the image if not found
-                        sh "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
-                        // Save image only after build
-                        sh "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
-                    }
-                }
+                echo 'Building Docker image'
+                sh "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
+            }
+        }
+
+        stage('Save Docker Image Locally') {
+            steps {
+                echo 'Saving Docker image locally'
+                sh "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
             }
         }
 
