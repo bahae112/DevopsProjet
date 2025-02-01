@@ -19,22 +19,22 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image via WSL'
-                bat "wsl docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
+                echo 'Building Docker image'
+                bat "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
             }
         }
 
         stage('Save Docker Image Locally') {
             steps {
                 echo 'Saving Docker image locally'
-                bat "wsl docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
+                bat "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
             }
         }
 
         stage('Push Docker Image to Registry') {
             steps {
                 echo 'Pushing Docker image to registry'
-                bat "wsl docker push ${REGISTRY}/${IMAGE_NAME}"
+                bat "docker push ${REGISTRY}/${IMAGE_NAME}"
             }
         }
 
