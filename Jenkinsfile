@@ -36,21 +36,37 @@ pipeline {
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Generate Markdown Report') {
             steps {
-                echo 'Running Docker container'
-                sh "docker run -d --name ${IMAGE_NAME}-container ${IMAGE_NAME}"
+                echo 'Generating SonarQube Markdown report'
+                script {
+                    // Télécharger le rapport SonarQube au format JSON
+                    sh """
+                    curl -u ${SONAR_AUTH_TOKEN}: \
+                    "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
+                    """
+                    
+                    // Générer un fichier Markdown à partir du rapport JSON
+                    sh '''
+                    echo "# SonarQube Analysis Report" > sonar_report.md
+                    echo "## Issues Summary" >> sonar_report.md
+                    echo "" >> sonar_report.md
+
+                    # Ajouter les informations des issues dans le fichier Markdown
+                    jq -r '.issues[] | "- \(.message) - Severity: \(.severity) - Line: \(.line)"' sonar_report.json >> sonar_report.md
+                    '''
+                }
             }
         }
 
         stage('Push to GitHub') {
             steps {
-                echo 'Pushing changes to GitHub'
+                echo 'Pushing Markdown report to GitHub'
                 sh """
                 git config --global user.email "bahaeaouanet2004@gmail.com"
                 git config --global user.name "bahae112"
-                git add .
-                git commit -m 'Automated commit from Jenkins'
+                git add sonar_report.md  // Ajouter le fichier Markdown au commit
+                git commit -m 'Automated commit from Jenkins with SonarQube markdown report'
                 git push origin ${BRANCH_NAME}
                 """
             }
