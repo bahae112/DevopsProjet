@@ -45,15 +45,15 @@ pipeline {
                     curl -u ${SONAR_AUTH_TOKEN}: \
                     "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
                     """
-                    
-                    // Générer un fichier Markdown à partir du rapport JSON sans caractères spéciaux
+
+                    // Générer un fichier Markdown à partir du rapport JSON
                     sh '''
                     echo "# SonarQube Analysis Report" > sonar_report.md
                     echo "## Issues Summary" >> sonar_report.md
                     echo "" >> sonar_report.md
 
-                    # Ajouter les informations des issues dans le fichier Markdown
-                    jq -r '.issues[] | "- \(.message) - Severity: \(.severity) - Line: \(.line)"' sonar_report.json >> sonar_report.md
+                    # Utiliser jq pour extraire les informations du rapport JSON et les ajouter au fichier Markdown
+                    jq '.issues[] | "- " + .message + " - Severity: " + .severity + " - Line: " + (.line | tostring)' sonar_report.json >> sonar_report.md
                     '''
                 }
             }
