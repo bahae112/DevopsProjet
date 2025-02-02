@@ -31,55 +31,42 @@ pipeline {
                     -Dsonar.projectKey=my-project \
                     -Dsonar.sources=. \
                     -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                    -Dsonar.analysis.mode=preview \
-                    -Dsonar.report.export.path=target/sonar-report.json
+                    -Dsonar.login=${SONAR_AUTH_TOKEN}
                 """
-            }
-        }
-
-        stage('Validate Report Existence') {
-            steps {
-                script {
-                    if (fileExists("target/sonar-report.json")) {
-                        echo "SonarQube report exists, proceeding to generate markdown"
-                    } else {
-                        echo "SonarQube report does not exist"
-                        currentBuild.result = 'FAILURE'
-                    }
-                }
             }
         }
 
         stage('Generate Markdown Report') {
             steps {
-                echo 'Generating Markdown report from SonarQube issues'
-                sh """
-                python3 -c '
-import json
+                echo 'Generating SonarQube Markdown report'
+                script {
+                    // Télécharger le rapport SonarQube au format JSON
+                    sh """
+                    curl -u ${SONAR_AUTH_TOKEN}: \
+                    "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
+                    """
 
-# Charger le fichier JSON des issues SonarQube
-with open("target/sonar-report.json", "r") as f:
-    data = json.load(f)
+                    // Générer un fichier Markdown à partir du rapport JSON
+                    sh '''
+                    echo "# SonarQube Analysis Report" > sonar_report.md
+                    echo "## Issues Summary" >> sonar_report.md
+                    echo "" >> sonar_report.md
 
-# Création d'un fichier markdown avec les issues
-with open("sonar-issues-report.md", "w") as md_file:
-    md_file.write("# SonarQube Issues Report\n")
-    for issue in data.get("issues", []):
-        md_file.write("- **${issue["message"]}** (Severity: ${issue["severity"]})\n")
-'
-                """
+                    # Utiliser jq pour extraire les informations du rapport JSON et les ajouter au fichier Markdown
+                    jq '.issues[] | "- " + .message + " - Severity: " + .severity + " - Line: " + (.line | tostring)' sonar_report.json >> sonar_report.md
+                    '''
+                }
             }
         }
 
         stage('Push to GitHub') {
             steps {
-                echo 'Pushing changes to GitHub'
+                echo 'Pushing Markdown report to GitHub'
                 sh """
                 git config --global user.email "bahaeaouanet2004@gmail.com"
                 git config --global user.name "bahae112"
-                git add .
-                git commit -m 'Automated commit from Jenkins: Added SonarQube issues report'
+                git add sonar_report.md  // Ajouter le fichier Markdown au commit
+                git commit -m 'Automated commit from Jenkins with SonarQube markdown report'
                 git push origin ${BRANCH_NAME}
                 """
             }
