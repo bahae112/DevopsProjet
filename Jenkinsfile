@@ -42,20 +42,19 @@ pipeline {
                 script {
                     // Utilisation de Python pour traiter le fichier JSON généré par SonarQube
                     sh """
-                    python3 <<EOF
-                    import json
+                    python3 -c '
+import json
 
-                    # Charger le fichier JSON des issues SonarQube
-                    with open('target/sonar-report.json', 'r') as f:
-                        data = json.load(f)
+# Charger le fichier JSON des issues SonarQube
+with open("target/sonar-report.json", "r") as f:
+    data = json.load(f)
 
-                    # Création d'un fichier markdown avec les issues
-                    with open('sonar_report.md', 'w') as report:
-                        report.write('# SonarQube Issues Report\n\n')
-                        for issue in data['issues']:
-                            report.write(f"- {issue['message']}\n")
-
-                    EOF
+# Création d\'un fichier markdown avec les issues
+with open("sonar_report.md", "w") as report:
+    report.write("# SonarQube Issues Report\n\n")
+    for issue in data["issues"]:
+        report.write(f"- {issue["message"]}\\n")
+                    '
                     """
                 }
             }
