@@ -46,18 +46,20 @@ pipeline {
                     "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
                     """
                     
-                    // Générer un fichier Markdown à partir du rapport JSON
+                    // Générer un fichier Markdown à partir du rapport JSON sans caractères spéciaux
                     sh '''
                     echo "# SonarQube Analysis Report" > sonar_report.md
                     echo "## Issues Summary" >> sonar_report.md
                     echo "" >> sonar_report.md
 
                     # Ajouter les informations des issues dans le fichier Markdown
-                    jq -r '.issues[] | "- \(.message) - Severity: \(.severity) - Line: \(.line)"' sonar_report.json >> sonar_report.md
+                    jq -r '.issues[] | "- \(.message) - Severity: \(.severity) - Line: \(.line)"' sonar_report.json | \
+                    sed 's/[^a-zA-Z0-9 ]//g' >> sonar_report.md  # Supprimer les caractères spéciaux
                     '''
                 }
             }
         }
+
         stage('Push to GitHub') {
             steps {
                 echo 'Pushing Markdown report to GitHub'
