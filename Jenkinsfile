@@ -11,20 +11,6 @@ pipeline {
         SONAR_AUTH_TOKEN = credentials('sonarqube')
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                echo 'Cloning repository'
-                git branch: "${BRANCH_NAME}", url: "${GIT_URL}"
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                echo 'Building Docker image'
-                sh "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
-            }
-        }
 
         stage('Run SonarQube Analysis') {
             steps {
