@@ -41,21 +41,40 @@ pipeline {
                 echo 'Generating SonarQube Markdown report in README.md'
                 script {
                     sh """
-                    curl -u ${SONAR_AUTH_TOKEN}: \
-                    "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
-                    """
-
-                    sh '''
-                    echo "# SonarQube Analysis Report" > README.md
-                    echo "## Issues Summary" >> README.md
+                    echo "📊 **SonarQube Analysis Report**" > README.md
+                    echo "---" >> README.md
+                    echo "### 📝 Issues Summary" >> README.md
                     echo "" >> README.md
 
-                    grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | while read line; do echo "- **$line**" >> README.md; done
+                    # Récupérer le rapport JSON complet
+                    curl -s -u ${SONAR_AUTH_TOKEN}: \
+                    "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
 
-                    grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | while read severity; do echo "  - Severity: $severity" >> README.md; done
+                    # Ajouter le nombre total d'issues
+                    TOTAL_ISSUES=\$(grep -o '"total": *[0-9]*' sonar_report.json | head -1 | awk '{print \$2}')
+                    echo "**Total Issues: \${TOTAL_ISSUES}**" >> README.md
+                    echo "" >> README.md
 
-                    grep -o '"line": *[0-9]*' sonar_report.json | sed 's/"line": //' | while read line_number; do echo "  - Line: $line_number" >> README.md; done
-                    '''
+                    # Extraire les messages d'erreur et formater
+                    echo "### 🔍 Detected Issues" >> README.md
+                    grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | while read line; do
+                        echo "- **\${line}**" >> README.md
+                    done
+
+                    # Ajouter les niveaux de sévérité
+                    echo "" >> README.md
+                    echo "### 🚨 Severity Levels" >> README.md
+                    grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | while read severity; do
+                        echo "- 🔴 **\${severity}**" >> README.md
+                    done
+
+                    # Afficher le contenu brut de l'API (formaté)
+                    echo "" >> README.md
+                    echo "### 📜 Raw JSON Report" >> README.md
+                    echo "\\\`\\\`\\\`json" >> README.md
+                    cat sonar_report.json | jq . >> README.md || cat sonar_report.json >> README.md
+                    echo "\\\`\\\`\\\`" >> README.md
+                    """
                 }
             }
         }
@@ -67,10 +86,10 @@ pipeline {
                     sh """
                     git config --global user.email "bahaeaouanet2004@gmail.com"
                     git config --global user.name "bahae112"
-                    
+
                     git remote set-url origin https://bahae112:${TOKEN}@github.com/bahae112/DevopsProjet.git
                     git add README.md
-                    git commit -m 'Automated commit from Jenkins with updated SonarQube markdown report'
+                    git commit -m 'Automated commit from Jenkins with formatted SonarQube report'
                     git push origin ${BRANCH_NAME}
                     """
                 }
