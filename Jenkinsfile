@@ -31,43 +31,55 @@ pipeline {
                     -Dsonar.projectKey=my-project \
                     -Dsonar.sources=. \
                     -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_AUTH_TOKEN}
+                    -Dsonar.login=${SONAR_AUTH_TOKEN} \
+                    -Dsonar.analysis.mode=preview \
+                    -Dsonar.report.export.path=target/sonar-report.json
                 """
             }
         }
 
-        stage('Generate Report') {
+        stage('Validate Report Existence') {
             steps {
-                echo 'Generating SonarQube report'
                 script {
-                    // Utilisation de Python pour traiter le fichier JSON généré par SonarQube
-                    sh """
-                    python3 -c '
+                    if (fileExists("target/sonar-report.json")) {
+                        echo "SonarQube report exists, proceeding to generate markdown"
+                    } else {
+                        echo "SonarQube report does not exist"
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
+            }
+        }
+
+        stage('Generate Markdown Report') {
+            steps {
+                echo 'Generating Markdown report from SonarQube issues'
+                sh """
+                python3 -c '
 import json
 
 # Charger le fichier JSON des issues SonarQube
 with open("target/sonar-report.json", "r") as f:
     data = json.load(f)
 
-# Création d\'un fichier markdown avec les issues
-with open("sonar_report.md", "w") as report:
-    report.write("# SonarQube Issues Report\n\n")
-    for issue in data["issues"]:
-        report.write(f"- {issue["message"]}\\n")
-                    '
-                    """
-                }
+# Création d'un fichier markdown avec les issues
+with open("sonar-issues-report.md", "w") as md_file:
+    md_file.write("# SonarQube Issues Report\n")
+    for issue in data.get("issues", []):
+        md_file.write("- **${issue["message"]}** (Severity: ${issue["severity"]})\n")
+'
+                """
             }
         }
 
-        stage('Push Report to GitHub') {
+        stage('Push to GitHub') {
             steps {
-                echo 'Pushing SonarQube report to GitHub'
+                echo 'Pushing changes to GitHub'
                 sh """
                 git config --global user.email "bahaeaouanet2004@gmail.com"
                 git config --global user.name "bahae112"
-                git add sonar_report.md
-                git commit -m 'Add SonarQube issues report'
+                git add .
+                git commit -m 'Automated commit from Jenkins: Added SonarQube issues report'
                 git push origin ${BRANCH_NAME}
                 """
             }
