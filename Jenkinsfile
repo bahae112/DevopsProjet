@@ -53,8 +53,8 @@ pipeline {
             steps {
                 echo 'Pushing changes to GitHub'
                 sh """
-                git config --global user.email "your-email@example.com"
-                git config --global user.name "Your Name"
+                git config --global user.email "bahaeaouanet2004@gmail.com"
+                git config --global user.name "bahae112"
                 git add .
                 git commit -m 'Automated commit from Jenkins'
                 git push origin ${BRANCH_NAME}
