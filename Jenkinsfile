@@ -42,14 +42,6 @@ pipeline {
                 """
             }
         }
-
-        stage('Save Docker Image Locally') {
-            steps {
-                echo 'Saving Docker image locally'
-                sh "docker save -o ${IMAGE_NAME}.tar ${IMAGE_NAME}"
-            }
-        }
-
         stage('Run Docker Container') {
             steps {
                 echo 'Running Docker container'
