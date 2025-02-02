@@ -6,7 +6,7 @@ pipeline {
         REGISTRY = 'docker.io'
         DOCKERFILE_PATH = 'Dockerfile'
         GIT_URL = 'https://github.com/bahae112/DevopsProjet.git'
-        BRANCH_NAME = 'main'  // Spécifiez ici la branche correcte
+        BRANCH_NAME = 'main' // Spécifiez ici la branche correcte
         SONAR_HOST_URL = "http://localhost:9000"
         SONAR_AUTH_TOKEN = credentials('sonarqube')
     }
@@ -36,9 +36,9 @@ pipeline {
             }
         }
 
-        stage('Generate Markdown Report in README.md') {
+        stage('Update README with SonarQube Report') {
             steps {
-                echo 'Generating SonarQube Markdown report in README.md'
+                echo 'Updating README.md with SonarQube issues'
                 script {
                     // Télécharger le rapport SonarQube au format JSON
                     sh """
@@ -46,20 +46,16 @@ pipeline {
                     "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
                     """
 
-                    // Modifier le fichier README.md avec les informations de SonarQube
+                    // Extraire les issues et mettre à jour le README.md
                     sh '''
-                    # Ajouter un en-tête et une section pour les issues
-                    echo "# SonarQube Analysis Report" >> README.md
-                    echo "## Issues Summary" >> README.md
-                    echo "" >> README.md
+                    echo "# SonarQube Analysis Report" > temp_README.md
+                    echo "## Issues Summary" >> temp_README.md
+                    echo "" >> temp_README.md
 
-                    # Extraire et ajouter les issues dans le fichier README.md
-                    grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | while read line; do echo "- **$line**" >> README.md; done
+                    grep -o '"message":"[^"]*"' sonar_report.json | awk -F':' '{print "- " $2}' >> temp_README.md
 
-                    # Ajouter également la sévérité et la ligne de chaque issue
-                    grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | while read severity; do echo "  - Severity: $severity" >> README.md; done
-
-                    grep -o '"line": *[0-9]*' sonar_report.json | sed 's/"line": //' | while read line_number; do echo "  - Line: $line_number" >> README.md; done
+                    cat README.md >> temp_README.md
+                    mv temp_README.md README.md
                     '''
                 }
             }
@@ -67,14 +63,20 @@ pipeline {
 
         stage('Push to GitHub') {
             steps {
-                echo 'Pushing modified README.md to GitHub'
-                sh """
+                echo 'Pushing README.md update to GitHub'
+                sh '''
                 git config --global user.email "bahaeaouanet2004@gmail.com"
                 git config --global user.name "bahae112"
-                git add README.md  // Ajouter le fichier README.md au commit
-                git commit -m 'Automated commit from Jenkins with updated SonarQube markdown report'
+
+                pwd
+                ls -la
+
+                cd $(git rev-parse --show-toplevel)
+
+                git add README.md
+                git commit -m "Automated update of README.md with SonarQube report"
                 git push origin ${BRANCH_NAME}
-                """
+                '''
             }
         }
     }
