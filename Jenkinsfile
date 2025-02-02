@@ -7,6 +7,8 @@ pipeline {
         DOCKERFILE_PATH = 'Dockerfile'
         GIT_URL = 'https://github.com/bahae112/DevopsProjet.git'
         BRANCH_NAME = 'main'  // Spécifiez ici la branche correcte
+        SONAR_HOST_URL = "http://localhost:9000"
+        SONAR_AUTH_TOKEN = credentials('sonarqube')
     }
 
     stages {
@@ -21,6 +23,23 @@ pipeline {
             steps {
                 echo 'Building Docker image'
                 sh "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
+            }
+        }
+
+        stage('Run SonarQube Analysis') {
+            steps {
+                echo 'Running SonarQube analysis'
+                sh """
+                docker run --rm \
+                    --network=host \
+                    -e SONAR_HOST_URL=${SONAR_HOST_URL} \
+                    -e SONAR_LOGIN=${SONAR_AUTH_TOKEN} \
+                    sonarsource/sonar-scanner-cli \
+                    -Dsonar.projectKey=my-project \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=${SONAR_AUTH_TOKEN}
+                """
             }
         }
 
