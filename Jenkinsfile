@@ -53,8 +53,7 @@ pipeline {
                     echo "" >> sonar_report.md
 
                     # Ajouter les informations des issues dans le fichier Markdown
-                    jq -r '.issues[] | "- \(.message) - Severity: \(.severity) - Line: \(.line)"' sonar_report.json | \
-                    sed 's/[^a-zA-Z0-9 ]//g' >> sonar_report.md  # Supprimer les caractères spéciaux
+                    jq -r '.issues[] | "- \(.message) - Severity: \(.severity) - Line: \(.line)"' sonar_report.json >> sonar_report.md
                     '''
                 }
             }
