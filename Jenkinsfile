@@ -71,9 +71,9 @@ pipeline {
                     # Afficher le contenu brut de l'API (formaté)
                     echo "" >> README.md
                     echo "### 📜 Raw JSON Report" >> README.md
-                    echo "\\\`\\\`\\\`json" >> README.md
+                    echo "```json" >> README.md
                     cat sonar_report.json | jq . >> README.md || cat sonar_report.json >> README.md
-                    echo "\\\`\\\`\\\`" >> README.md
+                    echo "```" >> README.md
                     """
                 }
             }
