@@ -36,9 +36,9 @@ pipeline {
             }
         }
 
-        stage('Generate Markdown Report') {
+        stage('Generate Markdown Report in README.md') {
             steps {
-                echo 'Generating SonarQube Markdown report'
+                echo 'Generating SonarQube Markdown report in README.md'
                 script {
                     // Télécharger le rapport SonarQube au format JSON
                     sh """
@@ -46,14 +46,20 @@ pipeline {
                     "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
                     """
 
-                    // Générer un fichier Markdown à partir du rapport JSON
+                    // Modifier le fichier README.md avec les informations de SonarQube
                     sh '''
-                    echo "# SonarQube Analysis Report" > sonar_report.md
-                    echo "## Issues Summary" >> sonar_report.md
-                    echo "" >> sonar_report.md
+                    # Ajouter un en-tête et une section pour les issues
+                    echo "# SonarQube Analysis Report" >> README.md
+                    echo "## Issues Summary" >> README.md
+                    echo "" >> README.md
 
-                    # Ajouter les issues au fichier Markdown
-                    cat sonar_report.json | jq -r '.issues[] | "- **\(.message)** (Severity: \(.severity)) (Line: \(.line))"' >> sonar_report.md
+                    # Extraire et ajouter les issues dans le fichier README.md
+                    grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | while read line; do echo "- **$line**" >> README.md; done
+
+                    # Ajouter également la sévérité et la ligne de chaque issue
+                    grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | while read severity; do echo "  - Severity: $severity" >> README.md; done
+
+                    grep -o '"line": *[0-9]*' sonar_report.json | sed 's/"line": //' | while read line_number; do echo "  - Line: $line_number" >> README.md; done
                     '''
                 }
             }
@@ -61,12 +67,12 @@ pipeline {
 
         stage('Push to GitHub') {
             steps {
-                echo 'Pushing Markdown report to GitHub'
+                echo 'Pushing modified README.md to GitHub'
                 sh """
                 git config --global user.email "bahaeaouanet2004@gmail.com"
                 git config --global user.name "bahae112"
-                git add sonar_report.md  // Ajouter le fichier Markdown au commit
-                git commit -m 'Automated commit from Jenkins with SonarQube markdown report'
+                git add README.md  // Ajouter le fichier README.md au commit
+                git commit -m 'Automated commit from Jenkins with updated SonarQube markdown report'
                 git push origin ${BRANCH_NAME}
                 """
             }
