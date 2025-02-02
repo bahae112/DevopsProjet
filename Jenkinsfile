@@ -46,33 +46,32 @@ pipeline {
                     echo "### 📝 Issues Summary" >> README.md
                     echo "" >> README.md
 
-                    # Récupérer le rapport JSON complet
+                    # Télécharger le rapport JSON
                     curl -s -u ${SONAR_AUTH_TOKEN}: \
                     "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
 
-                    # Ajouter le nombre total d'issues
-                    TOTAL_ISSUES=\$(grep -o '"total": *[0-9]*' sonar_report.json | head -1 | awk '{print \$2}')
+                    # Extraire le nombre total d'issues
+                    TOTAL_ISSUES=\$(grep -o '"total":[0-9]*' sonar_report.json | awk -F: '{print \$2}')
                     echo "**Total Issues: \${TOTAL_ISSUES}**" >> README.md
                     echo "" >> README.md
 
-                    # Extraire les messages d'erreur et formater
+                    # Extraire et afficher les détails des issues
                     echo "### 🔍 Detected Issues" >> README.md
-                    grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | while read line; do
+                    grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | sed 's/"$//' | while read line; do
                         echo "- **\${line}**" >> README.md
                     done
 
-                    # Ajouter les niveaux de sévérité
                     echo "" >> README.md
                     echo "### 🚨 Severity Levels" >> README.md
-                    grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | while read severity; do
+                    grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | sed 's/"$//' | while read severity; do
                         echo "- 🔴 **\${severity}**" >> README.md
                     done
 
-                    # Afficher le contenu brut de l'API (formaté)
+                    # Ajouter le rapport brut en JSON formaté
                     echo "" >> README.md
                     echo "### 📜 Raw JSON Report" >> README.md
                     echo "```json" >> README.md
-                    cat sonar_report.json | jq . >> README.md || cat sonar_report.json >> README.md
+                    cat sonar_report.json >> README.md
                     echo "```" >> README.md
                     """
                 }
