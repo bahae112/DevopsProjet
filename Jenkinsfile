@@ -58,7 +58,6 @@ pipeline {
                 }
             }
         }
-
         stage('Push to GitHub') {
             steps {
                 echo 'Pushing Markdown report to GitHub'
