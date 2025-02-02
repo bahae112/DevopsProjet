@@ -19,6 +19,14 @@ pipeline {
             }
         }
 
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image'
+                sh "docker build -t ${IMAGE_NAME} -f ${DOCKERFILE_PATH} ."
+            }
+        }
+
+        
         stage('Run SonarQube Analysis') {
             steps {
                 echo 'Running SonarQube analysis'
