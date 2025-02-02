@@ -40,7 +40,7 @@ pipeline {
             steps {
                 echo 'Generating SonarQube Markdown report in README.md'
                 script {
-                    sh """
+                    sh '''
                     echo "📊 **SonarQube Analysis Report**" > README.md
                     echo "---" >> README.md
                     echo "### 📝 Issues Summary" >> README.md
@@ -51,20 +51,20 @@ pipeline {
                     "${SONAR_HOST_URL}/api/issues/search?componentKeys=my-project&resolved=false" -o sonar_report.json
 
                     # Extraire le nombre total d'issues
-                    TOTAL_ISSUES=\$(grep -o '"total":[0-9]*' sonar_report.json | awk -F: '{print \$2}')
-                    echo "**Total Issues: \${TOTAL_ISSUES}**" >> README.md
+                    TOTAL_ISSUES=$(grep -o '"total":[0-9]*' sonar_report.json | awk -F: '{print $2}')
+                    echo "**Total Issues: ${TOTAL_ISSUES}**" >> README.md
                     echo "" >> README.md
 
                     # Extraire et afficher les détails des issues
                     echo "### 🔍 Detected Issues" >> README.md
                     grep -o '"message": *"[^"]*"' sonar_report.json | sed 's/"message": "//' | sed 's/"$//' | while read line; do
-                        echo "- **\${line}**" >> README.md
+                        echo "- **${line}**" >> README.md
                     done
 
                     echo "" >> README.md
                     echo "### 🚨 Severity Levels" >> README.md
                     grep -o '"severity": *"[^"]*"' sonar_report.json | sed 's/"severity": "//' | sed 's/"$//' | while read severity; do
-                        echo "- 🔴 **\${severity}**" >> README.md
+                        echo "- 🔴 **${severity}**" >> README.md
                     done
 
                     # Ajouter le rapport brut en JSON formaté
@@ -73,7 +73,7 @@ pipeline {
                     echo "```json" >> README.md
                     cat sonar_report.json >> README.md
                     echo "```" >> README.md
-                    """
+                    '''
                 }
             }
         }
