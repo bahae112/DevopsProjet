@@ -1,10 +1,15 @@
-stage('Deploy') {
-    steps {
-        script {
-            sh '''
-            cd myapp  # Adapter si nécessaire
-            gcloud app deploy --quiet
-            '''
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building...'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+            }
         }
     }
 }
