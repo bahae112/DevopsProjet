@@ -1,1 +1,35 @@
 
+runtime: custom
+env: flex
+
+service: default  # Nom du service (modifiable si besoin)
+
+# Configuration des ressources
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10
+
+# Exposition du port pour Django (correspondant à ton Dockerfile)
+env_variables:
+  DJANGO_SETTINGS_MODULE: "myapp.settings"
+  PYTHONUNBUFFERED: "1"
+
+# Vérification de l'état de l'application
+readiness_check:
+  path: "/"
+
+liveness_check:
+  path: "/"
+
+# Activer le scaling automatique
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 5
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.75
+
+# Spécifier que l'on utilise un conteneur Docker
+handlers:
+- url: /.*
+  script: auto
