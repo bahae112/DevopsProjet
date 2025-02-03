@@ -3,15 +3,21 @@ pipeline {
     stages {
         stage('Authenticate gcloud') {
             steps {
-                sh 'gcloud --version'  // Vérifier si gcloud est installé et fonctionne
-                sh 'gcloud auth list'  // Afficher les comptes authentifiés
-                sh 'gcloud config list'  // Afficher la configuration de gcloud
+                script {
+                    // Activer le compte de service
+                    sh '''
+                    gcloud auth activate-service-account --key-file="/mnt/c/Users/ASUS/Downloads/glass-mantra-447916-d1-03e779bd3e6b - Copie.json"
+                    gcloud config set account deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com
+                    '''
+                }
             }
         }
         stage('Deploy') {
             steps {
-                // Ajoutez ici votre commande gcloud pour déployer
-                sh 'gcloud app deploy'
+                script {
+                    // Commande de déploiement
+                    sh 'gcloud app deploy'
+                }
             }
         }
     }
