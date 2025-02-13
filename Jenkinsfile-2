@@ -11,6 +11,7 @@ pipeline {
     stages {
         stage('Authenticate to GCP') {
             steps {
+                // Utilisation du credential de type fichier
                 withCredentials([file(credentialsId: 'gcouldJenkins', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
                     sh 'gcloud config set project $PROJECT_ID'
@@ -33,6 +34,7 @@ pipeline {
                 sh "gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION"
             }
         }
+
         stage('Deploy to GKE') {
             steps {
                 // Appliquer le fichier de déploiement Kubernetes
