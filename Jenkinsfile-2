@@ -33,7 +33,6 @@ pipeline {
                 sh "gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION"
             }
         }
-
         stage('Deploy to GKE') {
             steps {
                 // Appliquer le fichier de déploiement Kubernetes
