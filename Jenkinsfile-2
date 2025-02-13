@@ -1,63 +1,46 @@
 pipeline {
-  agent any
-  environment {
-    CLOUDSDK_CORE_PROJECT = 'glass-mantra-447916-d1'
-    CLIENT_EMAIL = 'deploydockerimage@glass-mantra-447916-d1.iam.gserviceaccount.com'
-  }
-  stages {
-    stage('Verify version') {
-      steps {
-        script {
-          echo 'Verifying gcloud version...'
-          bat 'gcloud version'
-        }
-      }
-    }
-    
-    stage('Authenticate') {
-      steps {
-        script {
-          echo 'Authenticating with Google Cloud...'
-          withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
-            bat '''
-              gcloud auth activate-service-account --key-file=%GCLOUD_CREDS%
-            '''
-          }
-        }
-      }
+    agent any
+
+    environment {
+        PROJECT_ID = 'glass-mantra-447916-d1'  // ID du projet GCP
+        GKE_CLUSTER = 'autopilot-cluster-1'    // Nom du cluster GKE
+        GKE_REGION = 'africa-south1'           // Région du cluster
+        IMAGE_NAME = 'my-image'                // Nom de l'image Docker déjà construite
     }
 
-    stage('Install service') {
-      steps {
-        script {
-          echo 'Deploying service with gcloud...'
-          bat '''
-            gcloud run services replace service.yaml --platform='managed' --region='us-central1'
-          '''
+    stages {
+        stage('Authenticate to GCP') {
+            steps {
+                withCredentials([file(credentialsId: 'gcouldJenkins', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+                    sh 'gcloud config set project $PROJECT_ID'
+                }
+            }
         }
-      }
-    }
 
-    stage('Allow allUsers') {
-      steps {
-        script {
-          echo 'Configuring IAM permissions for public access...'
-          bat '''
-            gcloud run services add-iam-policy-binding hello --region='us-central1' --member='allUsers' --role='roles/run.invoker'
-          '''
+        stage('Push Docker Image to GCR') {
+            steps {
+                // Authentifier Docker auprès de GCR
+                sh 'gcloud auth configure-docker'
+                // Pousser l'image vers Google Container Registry
+                sh "docker tag ${IMAGE_NAME} gcr.io/${PROJECT_ID}/${IMAGE_NAME}"
+                sh "docker push gcr.io/${PROJECT_ID}/${IMAGE_NAME}"
+            }
         }
-      }
-    }
-  }
 
-  post {
-    always {
-      script {
-        echo 'Revoking authentication...'
-        withCredentials([file(credentialsId: 'google-cloud-key', variable: 'GCLOUD_CREDS')]) {
-          bat 'gcloud auth revoke %CLIENT_EMAIL%'
+        stage('Configure kubectl') {
+            steps {
+                sh "gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION"
+            }
         }
-      }
+
+        stage('Deploy to GKE') {
+            steps {
+                // Appliquer le fichier de déploiement Kubernetes
+                sh "kubectl apply -f k8s/deployment.yaml"
+                // Mettre à jour l'image dans le déploiement Kubernetes
+                sh "kubectl set image deployment/my-app my-app=gcr.io/${PROJECT_ID}/${IMAGE_NAME}"
+            }
+        }
     }
-  }
 }
