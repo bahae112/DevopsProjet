@@ -12,7 +12,7 @@ pipeline {
         stage('Authenticate to GCP') {
             steps {
                 // Utilisation du credential de type fichier
-                withCredentials([file(credentialsId: 'gcouldJenkins', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                withCredentials([file(credentialsId: 'cloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
     sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
 }
 
