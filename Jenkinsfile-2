@@ -13,6 +13,8 @@ pipeline {
             steps {
                 // Utilisation du credential de type fichier
                 withCredentials([file(credentialsId: 'cloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+    sh 'ls -l $GOOGLE_APPLICATION_CREDENTIALS'  // Vérifier si le fichier existe
+    sh 'gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"'
     sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
 }
 
