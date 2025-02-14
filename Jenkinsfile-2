@@ -10,16 +10,18 @@ pipeline {
 
     stages {
         stage('Authenticate to GCP') {
-            steps {
-                // Utilisation du credential de type fichier
-                withCredentials([file(credentialsId: 'cloud', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-    sh 'ls -l $GOOGLE_APPLICATION_CREDENTIALS'  // Vérifier si le fichier existe
-    sh 'gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"'
-    sh 'gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS'
+    steps {
+        withCredentials([file(credentialsId: 'gcouldJenkins', variable: 'GCLOUD_KEY')]) {
+            sh '''
+                mkdir -p /tmp/gcloud
+                cp "$GCLOUD_KEY" /tmp/gcloud/key.json
+                ls -l /tmp/gcloud  # Vérifier si le fichier est bien là
+                gcloud auth activate-service-account --key-file="/tmp/gcloud/key.json"
+            '''
+        }
+    }
 }
 
-            }
-        }
 
         stage('Push Docker Image to GCR') {
             steps {
